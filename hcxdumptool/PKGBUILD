@@ -1,0 +1,41 @@
+_pkgname=hcxdumptool
+pkgname=${_pkgname}-git
+_pkgver=7.1.2
+pkgver=${_pkgver}
+pkgrel=1
+pkgdesc='Portable solution for capturing wlan traffic and conversion to hashcat and John the Ripper formats'
+url='https://github.com/ZerBea/hcxdumptool'
+license=('MIT')
+arch=('x86_64')
+
+depends=('curl' 'libpcap' 'zlib' 'openssl')
+makedepends=('make' 'gcc')
+
+options=(!debug)
+
+conflicts=("hcxdumptool")
+provides=('hcxdumptool-git')
+
+source=(${pkgname}::git+https://github.com/ZerBea/hcxdumptool)
+
+sha512sums=('SKIP')
+
+pkgver() {
+  cd ${pkgname}
+  git describe --long --tags --abbrev=7 | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+}
+
+build() {
+
+  cd ${pkgname}
+  CFLAGS+=" $LDFLAGS" \
+  make PRODUCTION=1
+
+}
+
+package() {
+  cd ${pkgname}
+  make DESTDIR="${pkgdir}" PREFIX=/usr PRODUCTION=1 install
+}
+
+# vim: ts=2 sw=2 et:
