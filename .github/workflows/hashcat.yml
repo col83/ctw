@@ -1,0 +1,55 @@
+name: Build hashcat
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  build:
+    runs-on: ubuntu-26.04
+    container:
+      image: archlinux:latest
+
+    steps:
+
+      - name: Install dependencies
+        run: |
+          pacman -Syyuu --needed --noconfirm base sudo fakeroot git gcc clang lld llvm make pkg-config ocl-icd xxhash zlib minizip opencl-headers rust
+
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 1
+          submodules: recursive
+
+      - name: Create build user
+        run: |
+          useradd -m -u 1000 builder
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+
+      - name: Build
+        run: |
+          runuser -u builder -- bash -c '
+            pushd "hashcat/" 1>/dev/null
+            makepkg -cCfs
+          '
+
+      - name: Prepare artifact name
+        run: |
+          PACKAGE="$(find hashcat -maxdepth 1 -type f -name '*.pkg.tar.zst' -print -quit)"
+
+          if [ -z "$PACKAGE" ]; then
+            echo "::error::No package found in hashcat/"
+            exit 1
+          fi
+
+          ARTIFACT_NAME="$(basename "$PACKAGE")"
+          echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >> "$GITHUB_ENV"
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          path: hashcat/*.pkg.tar.zst
+          name: ${{ env.ARTIFACT_NAME }}
+          compression-level: 0
+          archive: false

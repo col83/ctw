@@ -1,7 +1,7 @@
 _pkgname=hashcat
 pkgname=${_pkgname}-git
 _pkgver=7.1.2
-pkgver=${_pkgver}
+pkgver=7.1.2.r917.g5329904
 pkgrel=1
 pkgdesc='Multithreaded advanced password recovery utility'
 url='https://hashcat.net/hashcat'
@@ -9,7 +9,7 @@ license=('MIT')
 arch=('x86_64')
 
 depends=('ocl-icd' 'xxhash' 'zlib' 'minizip')
-makedepends=('opencl-headers' 'rust')
+makedepends=('opencl-headers' 'clang' 'llvm' 'lld' 'rust')
 
 options=(!debug)
 
@@ -42,12 +42,14 @@ build() {
   export CFLAGS+=" ${CPPFLAGS}"
   export CXXFLAGS+=" ${CPPFLAGS}"
 
-  make -j4 \
+  RUST_BACKTRACE=1 make -j4 \
+    CC=clang \
+    CXX=clang++ \
     PREFIX=/usr \
     DEBUG=0 \
     SHARED=1 \
-    ENABLE_LTO=1 \
-    ENABLE_BRAIN=1 \
+    ENABLE_LTO=0 \
+    ENABLE_BRAIN=0 \
     MAINTAINER_MODE=0 \
     USE_SYSTEM_XXHASH=1 \
     USE_SYSTEM_OPENCL=1 \
@@ -57,7 +59,7 @@ build() {
 
 check() {
   cd ${pkgname}
-  tools/test_package.sh --no-device
+  bash --noprofile tools/test_package.sh . --no-device
 }
 
 package() {
@@ -69,15 +71,16 @@ package() {
     PREFIX=/usr \
     DEBUG=0 \
     SHARED=1 \
-    ENABLE_LTO=1 \
-    ENABLE_BRAIN=1 \
+    ENABLE_LTO=0 \
+    ENABLE_BRAIN=0 \
     MAINTAINER_MODE=0 \
     USE_SYSTEM_XXHASH=1 \
     USE_SYSTEM_OPENCL=1 \
-    USE_SYSTEM_ZLIB=1
+    USE_SYSTEM_ZLIB=1 \
     install
 
-    install -Dm 644 extra/tab_completion/${pkgname}.sh "${pkgdir}/usr/share/bash-completion/completions/${pkgname}"
+  # install -Dm 644 extra/tab_completion/${pkgname}.sh "${pkgdir}/usr/share/bash-completion/completions/${pkgname}"
+  install -Dm 644 extra/tab_completion/${_pkgname}.sh "${pkgdir}/usr/share/bash-completion/completions/${_pkgname}"
 
 }
 
